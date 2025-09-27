@@ -166,20 +166,36 @@ def rent_film():
 
 @app.route("/api/customers")
 def get_customers():
+    from flask import request
+    page = int(request.args.get("page", 1))
+    per_page = int(request.args.get("per_page", 20))
+    offset = (page - 1) * per_page
+
     connection = get_db_connection()
     cursor = connection.cursor(dictionary=True)
 
+    cursor.execute("SELECT COUNT(*) AS total FROM customer")
+    total = cursor.fetchone()["total"]
+
     query = """
-        SELECT customer_id, first_name, last_name, email
+        SELECT customer_id, first_name, last_name, email, active
         FROM customer
-        ORDER BY last_name, first_name
+        ORDER BY customer_id
+        LIMIT %s OFFSET %s
     """
-    cursor.execute(query)
-    results = cursor.fetchall()
+    cursor.execute(query, (per_page, offset))
+    customers = cursor.fetchall()
 
     cursor.close()
     connection.close()
-    return jsonify(results)
+
+    return jsonify({
+        "customers": customers,
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": (total + per_page - 1) // per_page
+    })
 
 if __name__ == "__main__":
     app.run(debug=True)
