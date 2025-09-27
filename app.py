@@ -89,6 +89,27 @@ def get_film_details(film_id):
     """
     cursor.execute(query, (film_id,))
     result = cursor.fetchone()
+        genre_query = """
+        SELECT c.name AS category
+        FROM film_category fc
+        JOIN category c ON fc.category_id = c.category_id
+        WHERE fc.film_id = %s
+    """
+    cursor.execute(genre_query, (film_id,))
+    genres = [row["category"] for row in cursor.fetchall()]
+
+    film["genres"] = genres
+
+    actor_query = """
+        SELECT a.actor_id, a.first_name, a.last_name
+        FROM actor a
+        JOIN film_actor fa ON a.actor_id = fa.actor_id
+        WHERE fa.film_id = %s
+        ORDER BY a.last_name, a.first_name
+    """
+    cursor.execute(actor_query, (film_id,))
+    actors = cursor.fetchall()
+    
     cursor.close()
     connection.close()
     return jsonify(result)
